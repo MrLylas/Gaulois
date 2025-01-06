@@ -52,18 +52,100 @@
 
 --7. Nom des ingrédients + coût + quantité de chaque ingrédient qui composent la potion 'Santé'.--
 
+	SELECT nom_ingredient,qte,cout_ingredient
+	FROM ingredient ing 
+	INNER JOIN composer com
+	ON ing.id_ingredient = com.id_ingredient
+	WHERE id_potion = 3
+
 --8. Nom du ou des personnages qui ont pris le plus de casques dans la bataille 'Bataille du village gaulois'.--
+
+	SELECT per.nom_personnage, bat.nom_bataille,SUM(pca.qte)
+	FROM personnage per
+	JOIN prendre_casque pca ON per.id_personnage = pca.id_personnage
+	JOIN bataille bat ON pca.id_bataille = bat.id_bataille
+	WHERE bat.id_bataille = 1
+	GROUP BY per.id_personnage, per.nom_personnage
+	HAVING SUM(pca.qte) >= ALL (
+		SELECT SUM(pca2.qte)
+		FROM prendre_casque pca2
+		JOIN bataille bat2 ON pca2.id_bataille = bat2.id_bataille
+		WHERE bat2.id_bataille = 1
+		GROUP BY pca2.id_personnage
+		);
 
 --9. Nom des personnages et leur quantité de potion bue (en les classant du plus grand buveur au plus petit).--
 
+	SELECT per.nom_personnage,sum(boi.dose_boire)
+	from personnage per
+	INNER JOIN boire boi
+	ON per.id_personnage = boi.id_personnage
+	GROUP BY per.nom_personnage
+
+
 --10. Nom de la bataille où le nombre de casques pris a été le plus important.--
+
+	SELECT bat.nom_bataille, SUM(pca.qte) AS total_casque
+	FROM bataille bat
+	JOIN prendre_casque pca
+	ON bat.id_bataille = pca.id_bataille
+	GROUP BY bat.nom_bataille
+	HAVING SUM(pca.qte) = (
+		SELECT MAX(total_casque)
+		FROM (
+			SELECT SUM(pca2.qte) AS total_casque
+			FROM prendre_casque pca2
+			JOIN bataille bat2 ON pca2.id_bataille = bat2.id_bataille
+			GROUP BY bat2.id_bataille
+		) AS sous_requete
+	);
+
 
 --11. Combien existe-t-il de casques de chaque type et quel est leur coût total ? (classés par nombre décroissant)--
 
+	SELECT tcas.nom_type_casque,sum(cas.cout_casque * pcas.qte) AS total_cout
+	FROM type_casque tcas
+	INNER JOIN casque cas
+	ON tcas.id_type_casque = cas.id_type_casque
+	INNER JOIN prendre_casque pcas
+	ON cas.id_casque = pcas.id_casque
+	GROUP BY tcas.nom_type_casque
+	ORDER BY total_cout desc
+
+
 --12. Nom des potions dont un des ingrédients est le poisson frais.--
+
+	SELECT nom_potion
+	FROM composer com
+	INNER JOIN ingredient ing 
+	ON com.id_ingredient = ing.id_ingredient
+	INNER JOIN potion pot
+	ON com.id_potion = pot.id_potion
+	WHERE ing.id_ingredient = 24
+
 
 --13. Nom du / des lieu(x) possédant le plus d'habitants, en dehors du village gaulois.--
 
---14. Nom des personnages qui n'ont jamais bu aucune potion.--
+	SELECT lie.nom_lieu , COUNT(lie.nom_lieu)
+	FROM lieu lie
+	INNER JOIN personnage per
+	ON lie.id_lieu = per.id_lieu
+	WHERE lie.id_lieu != 1
+	GROUP BY lie.nom_lieu
 
+--14. Nom des personnages qui n'ont jamais bu aucune potion.--
+	SELECT nom_personnage 
+	FROM personnage
+	WHERE id_personnage NOT IN (
+		SELECT id_personnage
+		FROM boire
+		WHERE dose_boire > 0
+	)
 --15. Nom du / des personnages qui n'ont pas le droit de boire de la potion 'Magique'.--
+
+	SELECT nom_personnage 
+	FROM personnage
+	WHERE id_personnage NOT IN (
+		SELECT id_personnage
+		FROM autoriser_boire
+	)
