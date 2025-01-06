@@ -23,9 +23,32 @@
 
 --4. Nom des spécialités avec nombre de personnages par spécialité (trié par nombre de personnages décroissant).--
 
+	SELECT spe.nom_specialite,COUNT(per.id_specialite)
+	FROM specialite spe
+	INNER JOIN personnage per
+	ON spe.id_specialite = per.id_specialite
+	GROUP BY nom_specialite
+
+
 --5. Nom, date et lieu des batailles, classées de la plus récente à la plus ancienne (dates affichées au format jj/mm/aaaa).--
 
+	SELECT bat.nom_bataille, DATE_FORMAT(bat.date_bataille,"%d/%m/%Y"),lie.nom_lieu
+	FROM bataille bat
+	INNER JOIN lieu lie
+	ON bat.id_lieu = lie.id_lieu
+
+
 --6. Nom des potions + coût de réalisation de la potion (trié par coût décroissant).--
+
+	SELECT pot.nom_potion,sum(com.qte * ing.cout_ingredient) AS prix_potion 
+	FROM composer com
+	INNER JOIN potion pot
+	ON com.id_potion = pot.id_potion
+	INNER JOIN ingredient ing 
+	ON com.id_ingredient = ing.id_ingredient
+	GROUP BY pot.nom_potion
+	ORDER BY prix_potion desc
+
 
 --7. Nom des ingrédients + coût + quantité de chaque ingrédient qui composent la potion 'Santé'.--
 
