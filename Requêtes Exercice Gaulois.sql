@@ -126,21 +126,30 @@
 
 --13. Nom du / des lieu(x) possédant le plus d'habitants, en dehors du village gaulois.--
 
-	SELECT lie.nom_lieu , COUNT(lie.nom_lieu)
+	SELECT lie.nom_lieu, COUNT(per.id_personnage) AS nb_habitants
 	FROM lieu lie
 	INNER JOIN personnage per
 	ON lie.id_lieu = per.id_lieu
 	WHERE lie.id_lieu != 1
 	GROUP BY lie.nom_lieu
+	HAVING COUNT(per.id_personnage) >= ALL (
+		SELECT COUNT(per2.id_personnage)
+		FROM lieu lie2
+		INNER JOIN personnage per2
+		ON lie2.id_lieu = per2.id_lieu
+		WHERE lie2.id_lieu != 1
+		GROUP BY lie2.nom_lieu
+	);
+
 
 --14. Nom des personnages qui n'ont jamais bu aucune potion.--
-	SELECT nom_personnage 
-	FROM personnage
-	WHERE id_personnage NOT IN (
-		SELECT id_personnage
-		FROM boire
-		WHERE dose_boire > 0
-	)
+
+	SELECT per.nom_personnage
+	FROM personnage per
+	LEFT JOIN boire boi ON per.id_personnage = boi.id_personnage
+	GROUP BY per.nom_personnage
+	HAVING COUNT(boi.id_personnage) = 0;
+
 --15. Nom du / des personnages qui n'ont pas le droit de boire de la potion 'Magique'.--
 
 	SELECT nom_personnage 
@@ -149,3 +158,49 @@
 		SELECT id_personnage
 		FROM autoriser_boire
 	)
+
+--A. Ajoutez le personnage suivant : Champdeblix, agriculteur résidant à la ferme Hantassion de Rotomagus.--
+
+INSERT INTO personnage (nom_personnage,adresse_personnage,image_personnage,id_lieu,id_specialite)
+VALUES ('Champdeblix','Ferme Hantassion','indisponible.jpg',6,12)
+
+--B. Autorisez Bonemine à boire de la potion magique, elle est jalouse d'Iélosubmarine...--
+
+
+--C. Supprimez les casques grecs qui n'ont jamais été pris lors d'une bataille.--
+
+DELETE FROM casque
+WHERE id_casque IN (
+    SELECT id_casque FROM (
+        SELECT cas.id_casque
+        FROM casque cas
+        LEFT JOIN prendre_casque pcas
+        ON cas.id_casque = pcas.id_casque
+        WHERE id_type_casque = 2 AND qte IS NULL
+    ) AS supp
+);
+
+
+--D. Modifiez l'adresse de Zérozérosix : il a été mis en prison à Condate.--
+
+	UPDATE personnage 
+	SET adresse_personnage = 'Prison' , id_lieu = 9
+	WHERE id_personnage = 23
+
+
+--E. La potion 'Soupe' ne doit plus contenir de persil.--
+
+	DELETE FROM composer 
+	WHERE id_ingredient IN (
+		SELECT id_ingredient FROM(
+		SELECT com.id_ingredient
+		FROM composer com
+		WHERE id_potion = 9 AND id_ingredient = 19
+		)AS supp
+	)
+
+--F. Obélix s'est trompé : ce sont 42 casques Weisenau, et non Ostrogoths, qu'il a pris lors de la bataille 'Attaque de la banque postale'. Corrigez son erreur !
+
+	UPDATE prendre_casque 
+	SET id_casque = 10 , qte = 42
+	WHERE id_bataille = 9 and id_personnage = 5
